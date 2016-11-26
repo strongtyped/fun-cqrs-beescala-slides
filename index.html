@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Functional Event Sourced Apps with Fun.CQRS</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+        color: #455A64;
+      }
+
+      body {
+        font-family: 'Droid Serif';
+      }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: 400;
+        margin-bottom: 0;
+      }
+      .remark-slide-content h1 { font-size: 3em; }
+      .remark-slide-content h2 { font-size: 2em; }
+      .remark-slide-content h3 { font-size: 1.6em; }
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+      }
+      li p { line-height: 1.25em; }
+      .red { color: #fa0000; }
+      .large { font-size: 2em; }
+      a, a > code {
+        color: rgb(249, 38, 114);
+        text-decoration: none;
+      }
+
+      .inverse a, .inverse  a > code {
+        color: #ECECEC;
+        text-decoration: none;
+      }
+      code {
+        background: #e7e8e2;
+        border-radius: 5px;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .remark-code-line-highlighted     { background-color: #373832; }
+      .pull-left {
+        float: left;
+        width: 47%;
+      }
+      .pull-right {
+        float: right;
+        width: 47%;
+      }
+      .pull-right ~ p {
+        clear: both;
+      }
+      #slideshow .slide .content code {
+        font-size: 0.8em;
+      }
+      #slideshow .slide .content pre code {
+        font-size: 0.9em;
+        padding: 15px;
+      }
+      .inverse {
+        background: #455A64;
+        color: #FFFFFF;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+
+      /* Slide-specific styling */
+      #slide-inverse .footnote {
+        bottom: 12px;
+        left: 20px;
+      }
+      #slide-how .slides {
+        font-size: 0.9em;
+        position: absolute;
+        top:  151px;
+        right: 140px;
+      }
+      #slide-how .slides h3 {
+        margin-top: 0.2em;
+      }
+      #slide-how .slides .first, #slide-how .slides .second {
+        padding: 1px 20px;
+        height: 90px;
+        width: 120px;
+        -moz-box-shadow: 0 0 10px #777;
+        -webkit-box-shadow: 0 0 10px #777;
+        box-shadow: 0 0 10px #777;
+      }
+      #slide-how .slides .first {
+        background: #fff;
+        position: absolute;
+        top: 20%;
+        left: 20%;
+        z-index: 1;
+      }
+      #slide-how .slides .second {
+        position: relative;
+        background: #fff;
+        z-index: 0;
+      }
+
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 25%;
+        height: 92%;
+        float: left;
+      }
+        .left-column h2:last-of-type, .left-column h3:last-child {
+          color: #000;
+        }
+      .right-column {
+        width: 70%;
+        float: right;
+        padding-top: 1em;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+
+      
+      b, strong { color:  #303F9F; }
+
+      .focus { 
+        color:  #455A64;
+        font-weight: bold;
+       }
+
+
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+name: inverse
+layout: true
+class: center, middle, inverse
+
+---
+# Functional and Reactive 
+# Event Sourced Apps 
+#with Fun.CQRS  
+  
+[strongtyped/fun-cqrs-beescala-slides](https://github.com/strongtyped/fun-cqrs-beescala-slides/)
+
+---
+layout: false
+.left-column[ # Agenda ]
+.right-column[ 
+1. Introduction to CQRS and Event Sourcing  
+
+2. Fun.CQRS, highlevel feature overview  
+
+3. Write model design (configuring and testing)  
+
+4. Read model design (configuring and testing)
+]
+
+---
+class: left, top
+# What is CQRS? 
+
+## Command Query Responsibility Segregation
+
+  - two models:  
+    **Command** or **Write** model  
+    **Query** or **Read** model  
+
+  - on the **Write Side** we receive **Commands** and emit **Events**  
+
+  - on the **Read Side** we consume **Events** and generate **Views**
+---
+layout: false
+
+# What is Event Sourcing?  
+
+- **Event Sourcing** happens when you store every single event generated in your system.  
+
+- Very often used in combination with **CQRS**.  
+
+- Together they give us a lot of power.  
+
+- The **Event Log** is the single source of truth, nothing else matters...
+
+---
+## And than there is this **Aggregate** thing that nobody understands...
+
+  - It's a DDD concept defining a **Consistency Boundary**  
+
+  - In **CQRS** it maps to your **Command Model**
+
+  - In **Event Sourced** it's 'degraded' to a kind of validator  
+    only the **Events** matter (more on that later) 
+
+  - An **Aggregate** (CQRS/ES ctx) represents somehow the history of past **Events**. 
+
+  - It's the **Guardian** that decides if a **Command** can be accepted or not  
+  (think **Consistency Boundary**)
+???
+It's an interpretation of past **Events**. Think of it as the Accumulator of a foldLeft over all past events.
+
+---
+
+# Kind of big picture of it
+<img src="images/diagram.png" width="768" />
+
+---
+# Entering Fun.CQRS
+
+- .focus[It's a minimal framework for CQRS / ES in Scala]
+
+---
+
+# Entering Fun.CQRS
+
+- It's a minimal framework for CQRS / ES in Scala  
+
+- .focus[Tries to define an opiniated Functional Foundation for **CQRS**]
+
+
+---
+# Entering Fun.CQRS
+
+- It's a minimal framework for CQRS / ES in Scala  
+
+- Tries to define an opiniated Functional Foundation for **CQRS**  
+
+- .focus[Abstracts away aggregate management and persistency,  
+  so we concentrate in domain modeling]
+
+
+---
+# Entering Fun.CQRS
+
+- It's a minimal framework for CQRS / ES in Scala  
+
+- Tries to define an opiniated Functional Foundation for **CQRS**  
+
+- Abstracts away aggregate management and persistency,  
+  so we concentrate in domain modeling
+
+- .focus[As of today, it has two backend implementations:  
+  **AkkaBackend** and **InMemoryBackend**]
+
+
+---
+
+# Entering Fun.CQRS
+
+- It's a minimal framework for CQRS / ES in Scala  
+
+- Tries to define an opiniated Functional Foundation for **CQRS**  
+
+- Abstracts away aggregate management and persistency,  
+  so we concentrate in domain modeling
+
+- As of today, it has two backend implementations:  
+  **AkkaBackend** and **InMemoryBackend**
+
+- .focus[Based on **Interpreters** (no Free Monad) and some type system trickery  
+  that I'm still scared about]
+---
+
+
+# More Fun.CQRS
+
+- `Commands` and `Events` define a `Protocol`.
+
+- `Actions` are `Command Handlers` and `Event Handlers`.  
+
+- Together, they defined the `Behavior` of an `Aggregate`.   
+
+- And it has `Projections` to generate whatever you want from the persisted `Events`.
+
+
+---
+<img src="images/backend.png" width="740" />
+---
+ <img src="images/command.png" width="740" />
+---
+
+  #Raffle Aggregate
+  
+  - A classical shopping cart application.  
+
+  - Raffle defined as a ADT:  
+    `EmptyRaffle`, `NonEmptyRaffle` and `FinishedRaffle`
+
+  - Protocol: Commands and Events
+
+  - Behavior and Actions: command and event handlers
+
+
+---
+
+ # Raffle Protocol: Commands
+ ```scala
+
+object RaffleProtocol extends ProtocolLike {
+
+  sealed trait RaffleCommand extends ProtocolCommand
+    
+  case class CreateRaffle(numOfPrizes: Int) extends RaffleCommand
+  
+  case class AddParticipant(name: String) extends RaffleCommand
+
+  case class RemoveParticipant(name: String) extends RaffleCommand
+
+  case object RemoveAllParticipants extends RaffleCommand
+
+  case object Run extends RaffleCommand
+
+  // ... 
+}
+ ```
+
+
+---
+
+ # Raffle Protocol: Events
+ ```scala
+
+object RaffleProtocol extends ProtocolLike {
+
+  // ... 
+
+  sealed trait RaffleEvent extends ProtocolEvent {
+    def raffleId: RaffleId
+  }
+
+  // Creation Event
+  case class RaffleCreated(raffleId: RaffleId, 
+                           numOfPrizes: Int) extends RaffleEvent
+  
+  case class ParticipantAdded(name: String, 
+                              raffleId: RaffleId) extends RaffleEvent
+
+  case class ParticipantRemoved(name: String, 
+                                raffleId: RaffleId) extends RaffleEvent
+  
+  case class WinnerSelected(winners: List[String], 
+                            date: OffsetDateTime, 
+                            raffleId: RaffleId)  extends RaffleEvent
+
+}
+ ```
+
+---
+
+# Raffle ADT
+
+  
+```scala
+
+sealed trait Raffle extends AggregateLike {
+  type Id       = RaffleId
+  type Protocol = RaffleProtocol.type
+}
+
+case class EmptyRaffle(id: RaffleId, numOfPrizes: Int) extends Raffle
+
+case class NonEmptyRaffle(participants: List[String], 
+                          numOfPrizes: Int, 
+                          id: RaffleId) extends Raffle
+
+case class FinishedRaffle(winners: List[String], 
+                          id: RaffleId) extends Raffle
+```
+
+---
+
+class: center, middle, inverse
+
+  #DEMO
+
+---
+ <img src="images/query.png" width="740" />
+---
+# Projections
+  
+  A **Projection** is basically a `PartialFunction[DomainEvent, Future[Unit]].`
+
+  Often used to generate **Views**, but can also be used for intra **Aggregate** communication.
+---
+ <img src="images/projections.png" width="740" />
+
+---
+
+class: center, middle, inverse
+
+  #DEMO
+
+---  
+
+# Roadmap to 1.0.0
+ - clustering support for **AkkaBackend**
+ - Cats support: Validated / Either (2.12)
+ - Full documentation
+ 
+---
+
+class: middle, center, inverse
+# Thanks!
+renato@strongtyped.io  
+
+[www.funcqrs.io](http://www.funcqrs.io)
+
+[@renatocaval](http://twitter.com/renatocaval)  / [@strongtyped](http://twitter.com/strongtyped)
+
+---
+
+class: center, middle, inverse
+
+  The following slides can be analysed later.  
+  It's a trial to define the basic functions of a CQRS application  
+  in a very informal way.  
+
+  We can discuss it later around a beer! ;-)
+
+---
+
+# Functional CQRS Foundation - part 1
+
+```scala
+// the seed
+Command => Seq[Event]
+Event => Aggregate
+```
+
+```scala
+// updates
+(Aggregate, Command) => Seq[Event]
+(Aggregate, Event) => Aggregate
+```
+---
+# Functional CQRS Foundation - part 2
+
+```scala
+// the seed - Option[Aggregate] = None
+// updates  - Option[Aggregate] = Some[Aggregate] 
+
+(Option[Aggregate], Command) => Seq[Event]  
+
+// note that the returned Option[Aggregate] will always be a Some[Aggregate]
+(Option[Aggregate], Event) => Option[Aggregate]
+```
+
+
+---
+
+# Functional CQRS Foundation - part 3
+
+  but because a command can be rejected...
+
+```scala
+(Option[Aggregate], Command) => F[Seq[Event]]
+(Option[Aggregate], Event) => F[Option[Aggregate]]
+```  
+
+Where __F[_]__ is a type constructor for something that can represent failed computations.  
+(eg: Future, Try, left bounded Either, scalaz.Validation, cats.Validated)
+
+---
+# Functional CQRS Foundation - part 4
+
+Given
+
+```scala
+(Option[Aggregate], Command) => F[Seq[Event]]
+(Option[Aggregate], Event) => Option[Aggregate]
+```  
+
+Than...
+```scala
+(Seq[Event], Command) => F[Seq[Event]]
+(Seq[Event], Event) => F[Seq[Event]]
+```
+source: http://verraes.net/2014/05/functional-foundation-for-cqrs-event-sourcing/
+
+
+    </textarea>
+    <script src="js/remark.min.js">
+  </script>
+  <script>
+    var slideshow = remark.create({
+      ratio: '4:3',
+      //ratio: '16:9',
+      highlightLanguage: 'scala',
+      // Plausible style for blue background:
+      highlightStyle: 'github'
+      });
+  </script>
+  </body>
+</html>
